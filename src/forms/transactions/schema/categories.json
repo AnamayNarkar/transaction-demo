@@ -1,0 +1,54 @@
+{
+  "categories": [
+    {
+      "id": "groceries",
+      "label": "Groceries",
+      "description": "Food and household items"
+    },
+    {
+      "id": "dining",
+      "label": "Dining Out",
+      "description": "Restaurants and cafes"
+    },
+    {
+      "id": "utilities",
+      "label": "Utilities",
+      "description": "Electricity, water, gas, internet"
+    },
+    {
+      "id": "transport",
+      "label": "Transportation",
+      "description": "Public transport, fuel, ride-sharing"
+    },
+    {
+      "id": "entertainment",
+      "label": "Entertainment",
+      "description": "Movies, concerts, subscriptions"
+    },
+    {
+      "id": "shopping",
+      "label": "Shopping",
+      "description": "Clothing, electronics, gifts"
+    },
+    {
+      "id": "health",
+      "label": "Healthcare",
+      "description": "Medical expenses, pharmacy"
+    },
+    {
+      "id": "housing",
+      "label": "Housing",
+      "description": "Rent, mortgage, maintenance"
+    },
+    {
+      "id": "education",
+      "label": "Education",
+      "description": "Tuition, books, courses"
+    },
+    {
+      "id": "miscellaneous",
+      "label": "Miscellaneous",
+      "description": "Other expenses"
+    }
+  ]
+}
