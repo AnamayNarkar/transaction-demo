@@ -19,7 +19,7 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart"
 
-const categoriesOfPastTransactionsPieChart = () => {
+const CategoriesOfPastTransactionsPieChart = () => {
 
     interface Transaction {
         id: string;
@@ -148,4 +148,4 @@ const categoriesOfPastTransactionsPieChart = () => {
   )
 }
 
-export default categoriesOfPastTransactionsPieChart
+export default CategoriesOfPastTransactionsPieChart
