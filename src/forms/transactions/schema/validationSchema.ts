@@ -1,19 +1,16 @@
 import * as Yup from 'yup';
 
-export const transactionSchema = Yup.object().shape({
+const validationSchema = Yup.object({
   amount: Yup.number()
     .required('Amount is required')
-    .positive('Amount must be positive')
-    .typeError('Amount must be a number'),
+    .positive('Amount must be positive'),
   description: Yup.string()
     .required('Description is required')
-    .max(100, 'Description must be less than 100 characters'),
+    .min(3, 'Description must be at least 3 characters'),
   category: Yup.string()
     .required('Category is required'),
-  date: Yup.date()
+  date: Yup.string()
     .required('Date is required')
-    .max(new Date(), 'Date cannot be in the future')
-    .typeError('Please enter a valid date')
 });
 
-export default transactionSchema;
+export default validationSchema;

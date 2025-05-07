@@ -16,5 +16,7 @@ const TransactionSchema: Schema<ITransaction> = new Schema({
   date: { type: String, required: true },
 });
 
-// You can optionally customize the collection name here
-export const TransactionModel = mongoose.model<ITransaction>('Transaction', TransactionSchema);
+// Check if the model already exists to prevent "OverwriteModelError"
+export const TransactionModel = 
+  mongoose.models.Transaction || 
+  mongoose.model<ITransaction>('Transaction', TransactionSchema);
