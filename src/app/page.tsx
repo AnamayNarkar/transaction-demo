@@ -7,6 +7,8 @@ import { PlusCircle, DollarSign, BarChart4, TrendingDown, TrendingUp } from "luc
 import PastTransactions from "@/myComponents/pastTranscations";
 import CategoriesOfPastTransactionsPieChart from "@/myComponents/categoriesOfPastTransactionsPieChart";
 import MonthlyExpensesBarChart from "@/myComponents/monthlyExpensesBarChart";
+import CategoryBudgetForm from "@/myComponents/categoryBudgetForm";
+import BudgetVsActualChart from "@/myComponents/budgetVsActualChart";
 import { TransactionModal } from "@/components/ui/transaction-modal";
 import TransactionForm from "@/forms/transactions/TransactionForm";
 
@@ -163,6 +165,15 @@ export default function HomePage() {
               </div>
             </div>
           </Card>
+        </div>
+
+        {/* Budget vs Actual and Charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
+          {/* Budget vs Actual Chart */}
+          <BudgetVsActualChart onBudgetUpdate={handleTransactionUpdate} />
+          
+          {/* Monthly Category Budgets */}
+          <CategoryBudgetForm onBudgetChange={handleTransactionUpdate} />
         </div>
 
         {/* Main Content */}
