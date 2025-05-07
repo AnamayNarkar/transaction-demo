@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowRightCircle, PlusCircle, DollarSign, BarChart4, Clock, TrendingDown, TrendingUp } from "lucide-react";
 import PastTransactions from "@/myComponents/pastTranscations";
 import CategoriesOfPastTransactionsPieChart from "@/myComponents/categoriesOfPastTransactionsPieChart";
+import MonthlyExpensesBarChart from "@/myComponents/monthlyExpensesBarChart";
 // import { ChartContainer } from "@/components/ui/chart";
 
 // Define transaction interface
@@ -74,7 +75,7 @@ export default function HomePage() {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
-      currency: "USD",
+      currency: "INR",
     }).format(amount);
   };
 
@@ -86,7 +87,7 @@ export default function HomePage() {
           <p className="text-gray-400 mb-6 max-w-2xl mx-auto">
             Track your finances, monitor spending patterns, and make informed financial decisions with our easy-to-use dashboard.
           </p>
-          <Link href="/transactions/new">
+          <Link href="/new">
             <Button className="bg-blue-600 hover:bg-blue-700 text-white">
               <PlusCircle className="mr-2 h-5 w-5" />
               Add New Transaction
@@ -146,26 +147,23 @@ export default function HomePage() {
         </div>
 
         {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Recent Transactions */}
-          <div className="lg:col-span-2">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">Recent Transactions</h2>
-              <Link href="/transactions">
-                <Button variant="outline" className="border-slate-600 text-white hover:bg-slate-700">
-                  View All
-                  <ArrowRightCircle className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
-            </div>
-            <PastTransactions />
-          </div>
-
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           {/* Spending by Category */}
           <div>
             <h2 className="text-xl font-bold mb-4">Spending Categories</h2>
             <CategoriesOfPastTransactionsPieChart />
           </div>
+          
+          {/* Monthly Expenses Bar Chart */}
+          <div>
+            <h2 className="text-xl font-bold mb-4">Monthly Expenses</h2>
+            <MonthlyExpensesBarChart />
+          </div>
+        </div>
+        
+        {/* Recent Transactions */}
+        <div>
+          <PastTransactions />
         </div>
       </div>
     </main>

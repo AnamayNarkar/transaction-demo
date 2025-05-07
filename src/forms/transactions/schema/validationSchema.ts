@@ -10,7 +10,10 @@ const validationSchema = Yup.object({
   category: Yup.string()
     .required('Category is required'),
   date: Yup.string()
-    .required('Date is required')
+    .required('Date is required'),
+  transactionType: Yup.string()
+    .required('Transaction type is required')
+    .oneOf(['income', 'expense'], 'Must be either income or expense')
 });
 
 export default validationSchema;

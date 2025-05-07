@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Card } from '@/components/ui/card';
+import { Card, CardHeader, CardDescription, CardContent } from '@/components/ui/card';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import categories from '@/forms/transactions/schema/categories.json';
 
@@ -88,7 +88,7 @@ export default function CategoriesOfPastTransactionsPieChart() {
 
   if (loading) {
     return (
-      <Card className="p-6 bg-slate-700 text-white h-64 flex items-center justify-center">
+      <Card className="min-h-[400px] p-6 bg-slate-700 text-white h-64 flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
       </Card>
     );
@@ -96,7 +96,7 @@ export default function CategoriesOfPastTransactionsPieChart() {
 
   if (error) {
     return (
-      <Card className="p-6 bg-slate-700 text-white">
+      <Card className="min-h-[400px] p-6 bg-slate-700 text-white">
         <h2 className="text-xl font-bold mb-4">Spending by Category</h2>
         <div className="bg-red-800 text-white p-4 rounded-md">
           {error}
@@ -107,7 +107,7 @@ export default function CategoriesOfPastTransactionsPieChart() {
 
   if (categoryData.length === 0) {
     return (
-      <Card className="p-6 bg-slate-700 text-white">
+      <Card className="min-h-[400px] p-6 bg-slate-700 text-white">
         <h2 className="text-xl font-bold mb-4">Spending by Category</h2>
         <div className="text-center p-6 text-gray-400">
           No transaction data available to display.
@@ -117,9 +117,11 @@ export default function CategoriesOfPastTransactionsPieChart() {
   }
 
   return (
-    <Card className="p-6 bg-slate-700 text-white">
-      <h2 className="text-xl font-bold mb-4">Spending by Category</h2>
-      <div className="h-64">
+    <Card className="p-6 bg-slate-700 text-white h-[400px]">
+      <CardHeader className="px-0 pb-0">
+        <CardDescription>Spending by Category</CardDescription>
+      </CardHeader>
+      <CardContent className="p-0 mt-4 h-[300px]">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
@@ -139,7 +141,7 @@ export default function CategoriesOfPastTransactionsPieChart() {
             <Legend layout="vertical" align="right" verticalAlign="middle" />
           </PieChart>
         </ResponsiveContainer>
-      </div>
+      </CardContent>
       <div className="text-center text-sm text-gray-400 mt-4">
         Based on {totalTransactions} transaction{totalTransactions !== 1 ? 's' : ''}
       </div>

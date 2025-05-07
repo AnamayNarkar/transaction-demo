@@ -33,6 +33,7 @@ interface TransactionFormValues {
   description: string;
   category: string;
   date: string;
+  transactionType: 'income' | 'expense';
 }
 
 export const TransactionForm = () => {
@@ -46,6 +47,7 @@ export const TransactionForm = () => {
     description: '',
     category: '',
     date: new Date().toISOString().slice(0, 10), // Default to today's date
+    transactionType: 'expense', // Default to expense
   };
 
   const handleSubmit = async (
@@ -57,6 +59,9 @@ export const TransactionForm = () => {
     setSubmitSuccess(false);
 
     try {
+      // Convert amount based on transaction type
+      const amount = Number(values.amount) * (values.transactionType === 'expense' ? -1 : 1);
+
       const response = await fetch('/api/transactions', {
         method: 'POST',
         headers: {
@@ -64,7 +69,7 @@ export const TransactionForm = () => {
         },
         body: JSON.stringify({
           ...values,
-          amount: Number(values.amount),
+          amount,
         }),
       });
 
@@ -75,9 +80,6 @@ export const TransactionForm = () => {
       setSubmitSuccess(true);
       resetForm();
       router.refresh();
-      
-      // Notify parent component if needed
-      // onTransactionAdded();
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : 'An error occurred');
     } finally {
@@ -109,6 +111,32 @@ export const TransactionForm = () => {
         {({ isValid, touched, errors }) => (
           <Form className="space-y-4">
             <div>
+              <label className="block text-sm font-medium text-gray-200 mb-2">
+                Transaction Type
+              </label>
+              <div className="flex gap-4">
+                <label className="flex items-center">
+                  <Field
+                    type="radio"
+                    name="transactionType"
+                    value="expense"
+                    className="mr-2 bg-slate-800 border-slate-600"
+                  />
+                  <span className="text-sm text-gray-200">Expense</span>
+                </label>
+                <label className="flex items-center">
+                  <Field
+                    type="radio"
+                    name="transactionType"
+                    value="income"
+                    className="mr-2 bg-slate-800 border-slate-600"
+                  />
+                  <span className="text-sm text-gray-200">Income</span>
+                </label>
+              </div>
+            </div>
+
+            <div>
               <label htmlFor="amount" className="block text-sm font-medium text-gray-200 mb-1">
                 Amount
               </label>
@@ -118,6 +146,7 @@ export const TransactionForm = () => {
                 name="amount"
                 placeholder="0.00"
                 step="0.01"
+                min="0"
                 className="w-full p-2 bg-slate-800 border border-slate-600 rounded-md text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
               <ErrorMessage name="amount" component="div" className="mt-1 text-sm text-red-500" />
