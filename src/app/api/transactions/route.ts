@@ -7,14 +7,12 @@ export async function GET(req: NextRequest) {
     await connectDB();
     
     const transactions = await TransactionModel.find({})
-      .sort({ date: -1 })
+      .sort({ date: -1, createdAt: -1 })
       .limit(50);
     
     return NextResponse.json({ success: true, transactions }, { status: 200 });
   } catch (error) {
     console.error('Error fetching transactions:', error);
-    
-    // Improved error message with more details
     const errorMessage = error instanceof Error 
       ? error.message 
       : 'Unknown error occurred while fetching transactions';
@@ -36,6 +34,9 @@ export async function POST(req: NextRequest) {
     if (!data.id) {
       data.id = new Date().getTime().toString();
     }
+
+    // Set transaction type based on amount
+    data.transactionType = data.amount < 0 ? 'expense' : 'income';
     
     const newTransaction = await TransactionModel.create(data);
     
@@ -45,8 +46,6 @@ export async function POST(req: NextRequest) {
     );
   } catch (error) {
     console.error('Error creating transaction:', error);
-    
-    // Improved error message with more details
     const errorMessage = error instanceof Error 
       ? error.message 
       : 'Unknown error occurred while creating transaction';

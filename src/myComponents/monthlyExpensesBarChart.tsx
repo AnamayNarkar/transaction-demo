@@ -39,7 +39,11 @@ const chartConfig = {
   },
 } satisfies ChartConfig
 
-export default function MonthlyExpensesBarChart() {
+interface MonthlyExpensesChartProps {
+  onTransactionUpdate?: () => void;
+}
+
+export default function MonthlyExpensesBarChart({ onTransactionUpdate }: MonthlyExpensesChartProps) {
   const [chartData, setChartData] = useState(initialChartData)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -47,32 +51,40 @@ export default function MonthlyExpensesBarChart() {
   const [isIncreasing, setIsIncreasing] = useState(true)
   const currentYear = new Date().getFullYear()
 
-  useEffect(() => {
-    const fetchMonthlyData = async () => {
-      try {
-        setLoading(true)
-        const response = await fetch('/api/transactions')
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch transactions')
-        }
-        
-        const data = await response.json()
-        const transactions = data.transactions || []
-        
-        const monthlyData = processTransactionsByMonth(transactions)
-        setChartData(monthlyData)
-        calculateMonthlyComparison(monthlyData)
-      } catch (error) {
-        setError(error instanceof Error ? error.message : 'Failed to load monthly data')
-        console.error('Error fetching monthly expense data:', error)
-      } finally {
-        setLoading(false)
+  const fetchMonthlyData = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch('/api/transactions')
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch transactions')
       }
+      
+      const data = await response.json()
+      const transactions = data.transactions || []
+      
+      const monthlyData = processTransactionsByMonth(transactions)
+      setChartData(monthlyData)
+      calculateMonthlyComparison(monthlyData)
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Failed to load monthly data')
+      console.error('Error fetching monthly expense data:', error)
+    } finally {
+      setLoading(false)
     }
-    
+  }
+
+  // Initial fetch
+  useEffect(() => {
     fetchMonthlyData()
   }, [])
+
+  // Refresh when transactions are updated
+  useEffect(() => {
+    if (onTransactionUpdate) {
+      fetchMonthlyData();
+    }
+  }, [onTransactionUpdate]);
 
   const processTransactionsByMonth = (transactions: any[]) => {
     const months = [

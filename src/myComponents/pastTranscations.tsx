@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2 } from "lucide-react";
+import { Trash2, Edit2 } from "lucide-react";
 import categories from "@/forms/transactions/schema/categories.json";
+import TransactionForm from "@/forms/transactions/TransactionForm";
+import { TransactionModal } from "@/components/ui/transaction-modal";
 
 interface Transaction {
   id: string;
@@ -14,13 +16,19 @@ interface Transaction {
   date: string;
 }
 
-export default function PastTransactions() {
+interface PastTransactionsProps {
+  onTransactionUpdate?: () => void;
+}
+
+export default function PastTransactions({ onTransactionUpdate }: PastTransactionsProps) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const [lastUpdate, setLastUpdate] = useState(0);
 
-  const fetchTransactions = async () => {
+  const fetchTransactions = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch("/api/transactions");
@@ -30,7 +38,9 @@ export default function PastTransactions() {
       }
 
       const data = await response.json();
-      setTransactions(data.transactions || []);
+      if (data.success && Array.isArray(data.transactions)) {
+        setTransactions(data.transactions);
+      }
     } catch (error) {
       setError(
         error instanceof Error ? error.message : "Failed to load transactions"
@@ -39,11 +49,24 @@ export default function PastTransactions() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
+  // Initial fetch
   useEffect(() => {
     fetchTransactions();
-  }, []);
+  }, [fetchTransactions]);
+
+  // Handle transaction updates
+  useEffect(() => {
+    console.log("updating previous transactions");
+    fetchTransactions();
+  }, [fetchTransactions, onTransactionUpdate]);
+
+  const handleRefresh = useCallback(() => {
+    setLastUpdate(Date.now());
+    fetchTransactions();
+    onTransactionUpdate?.();
+  }, [fetchTransactions, onTransactionUpdate]);
 
   const handleDelete = async (id: string) => {
     try {
@@ -56,7 +79,7 @@ export default function PastTransactions() {
         throw new Error("Failed to delete transaction");
       }
 
-      await fetchTransactions();
+      handleRefresh();
     } catch (error) {
       setError(
         error instanceof Error ? error.message : "Failed to delete transaction"
@@ -65,6 +88,15 @@ export default function PastTransactions() {
     } finally {
       setIsDeleting(null);
     }
+  };
+
+  const handleEdit = (transaction: Transaction) => {
+    setEditingTransaction(transaction);
+  };
+
+  const handleEditSuccess = () => {
+    setEditingTransaction(null);
+    handleRefresh();
   };
 
   const getCategoryLabel = (categoryId: string) => {
@@ -109,51 +141,85 @@ export default function PastTransactions() {
   }
 
   return (
-    <Card className="p-6 bg-slate-700 text-white">
-      <h2 className="text-xl font-bold mb-4">Recent Transactions</h2>
+    <>
+      <Card className="p-6 bg-slate-700 text-white">
+        <h2 className="text-xl font-bold mb-4">Recent Transactions</h2>
 
-      {transactions.length === 0 ? (
-        <div className="text-center p-6 text-gray-400">
-          No transactions found. Add some to get started!
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {transactions.map((transaction) => (
-            <div
-              key={transaction.id}
-              className="flex items-center justify-between p-3 bg-slate-800 rounded-lg border border-slate-600 hover:bg-slate-750 transition-colors"
-            >
-              <div className="flex-1 min-w-0">
-                <div className="flex justify-between items-start mb-1">
-                  <h3 className="text-sm font-medium truncate">
-                    {transaction.description}
-                  </h3>
-                  <span className="text-sm font-bold ml-2 whitespace-nowrap">
-                    {formatAmount(transaction.amount)}
-                  </span>
+        {transactions.length === 0 ? (
+          <div className="text-center p-6 text-gray-400">
+            No transactions found. Add some to get started!
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {transactions.map((transaction) => (
+              <div
+                key={transaction.id}
+                className="flex items-center justify-between p-3 bg-slate-800 rounded-lg border border-slate-600 hover:bg-slate-750 transition-colors"
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between items-start mb-1">
+                    <h3 className="text-sm font-medium truncate">
+                      {transaction.description}
+                    </h3>
+                    <span className={`text-sm font-bold ml-2 whitespace-nowrap ${transaction.amount < 0 ? 'text-red-400' : 'text-green-400'}`}>
+                      {formatAmount(transaction.amount)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-xs text-gray-400">
+                    <span>{getCategoryLabel(transaction.category)}</span>
+                    <span>{formatDate(transaction.date)}</span>
+                  </div>
                 </div>
-                <div className="flex justify-between text-xs text-gray-400">
-                  <span>{getCategoryLabel(transaction.category)}</span>
-                  <span>{formatDate(transaction.date)}</span>
+                <div className="flex gap-2 ml-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-gray-400 hover:text-blue-500"
+                    onClick={() => handleEdit(transaction)}
+                  >
+                    <Edit2 className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-gray-400 hover:text-red-500"
+                    onClick={() => handleDelete(transaction.id)}
+                    disabled={isDeleting === transaction.id}
+                  >
+                    {isDeleting === transaction.id ? (
+                      <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-white"></div>
+                    ) : (
+                      <Trash2 className="h-4 w-4" />
+                    )}
+                  </Button>
                 </div>
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="ml-2 text-gray-400 hover:text-red-500"
-                onClick={() => handleDelete(transaction.id)}
-                disabled={isDeleting === transaction.id}
-              >
-                {isDeleting === transaction.id ? (
-                  <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-white"></div>
-                ) : (
-                  <Trash2 className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
-          ))}
-        </div>
-      )}
-    </Card>
+            ))}
+          </div>
+        )}
+      </Card>
+
+      {/* Edit Transaction Modal */}
+      <TransactionModal
+        isOpen={!!editingTransaction}
+        onClose={() => setEditingTransaction(null)}
+        title="Edit Transaction"
+      >
+        {editingTransaction && (
+          <TransactionForm
+            mode="edit"
+            initialData={{
+              id: editingTransaction.id,
+              amount: Math.abs(editingTransaction.amount).toString(),
+              description: editingTransaction.description,
+              category: editingTransaction.category,
+              date: editingTransaction.date,
+            }}
+            onSuccess={handleEditSuccess}
+            onCancel={() => setEditingTransaction(null)}
+          />
+        )}
+      </TransactionModal>
+    </>
   );
 }

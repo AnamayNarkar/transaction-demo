@@ -36,18 +36,30 @@ interface TransactionFormValues {
   transactionType: 'income' | 'expense';
 }
 
-export const TransactionForm = () => {
+interface TransactionFormProps {
+  initialData?: {
+    id?: string;
+    amount: string;
+    description: string;
+    category: string;
+    date: string;
+  };
+  onSuccess?: () => void;
+  onCancel?: () => void;
+  mode?: 'create' | 'edit';
+}
+
+export const TransactionForm = ({ initialData, onSuccess, onCancel, mode = 'create' }: TransactionFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
-  const router = useRouter();
 
   const initialValues: TransactionFormValues = {
-    amount: '',
-    description: '',
-    category: '',
-    date: new Date().toISOString().slice(0, 10), // Default to today's date
-    transactionType: 'expense', // Default to expense
+    amount: initialData?.amount || '',
+    description: initialData?.description || '',
+    category: initialData?.category || '',
+    date: initialData?.date || new Date().toISOString().slice(0, 10),
+    transactionType: initialData?.amount && Number(initialData.amount) > 0 ? 'income' : 'expense',
   };
 
   const handleSubmit = async (
@@ -59,29 +71,45 @@ export const TransactionForm = () => {
     setSubmitSuccess(false);
 
     try {
-      // Convert amount based on transaction type
-      const amount = Number(values.amount) * (values.transactionType === 'expense' ? -1 : 1);
+      const url = mode === 'edit' && initialData?.id 
+        ? `/api/transactions/${initialData.id}`
+        : '/api/transactions';
+      
+      const method = mode === 'edit' ? 'PUT' : 'POST';
+      
+      const amount = values.transactionType === 'expense' 
+        ? -Math.abs(Number(values.amount))
+        : Math.abs(Number(values.amount));
 
-      const response = await fetch('/api/transactions', {
-        method: 'POST',
+      const response = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           ...values,
           amount,
+          id: initialData?.id // Include the ID when editing
         }),
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to create transaction');
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || `Failed to ${mode} transaction`);
       }
 
       setSubmitSuccess(true);
-      resetForm();
-      router.refresh();
+      
+      // Call onSuccess immediately after successful submission
+      onSuccess?.();
+
+      if (mode === 'create') {
+        resetForm();
+      }
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : 'An error occurred');
+      console.error('Transaction submit error:', error);
     } finally {
       setIsSubmitting(false);
     }
@@ -89,11 +117,13 @@ export const TransactionForm = () => {
 
   return (
     <Card className="bg-slate-700 p-6 shadow-lg border-slate-600">
-      <h2 className="text-2xl font-bold mb-6 text-white">Add New Transaction</h2>
+      <h2 className="text-2xl font-bold mb-6 text-white">
+        {mode === 'edit' ? 'Edit Transaction' : 'Add New Transaction'}
+      </h2>
       
       {submitSuccess && (
         <div className="bg-green-800 text-white p-3 rounded-md mb-4">
-          Transaction added successfully!
+          Transaction {mode === 'edit' ? 'updated' : 'added'} successfully!
         </div>
       )}
       
@@ -107,6 +137,7 @@ export const TransactionForm = () => {
         initialValues={initialValues}
         validationSchema={validationSchema}
         onSubmit={handleSubmit}
+        enableReinitialize
       >
         {({ isValid, touched, errors }) => (
           <Form className="space-y-4">
@@ -146,7 +177,6 @@ export const TransactionForm = () => {
                 name="amount"
                 placeholder="0.00"
                 step="0.01"
-                min="0"
                 className="w-full p-2 bg-slate-800 border border-slate-600 rounded-md text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
               <ErrorMessage name="amount" component="div" className="mt-1 text-sm text-red-500" />
@@ -199,13 +229,26 @@ export const TransactionForm = () => {
               <ErrorMessage name="date" component="div" className="mt-1 text-sm text-red-500" />
             </div>
             
-            <Button
-              type="submit"
-              disabled={isSubmitting || (!isValid && Object.keys(touched).length > 0)}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white transition-colors"
-            >
-              {isSubmitting ? 'Adding...' : 'Add Transaction'}
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                type="submit"
+                disabled={isSubmitting || (!isValid && Object.keys(touched).length > 0)}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white transition-colors"
+              >
+                {isSubmitting ? 'Saving...' : mode === 'edit' ? 'Update Transaction' : 'Add Transaction'}
+              </Button>
+              
+              {mode === 'edit' && onCancel && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={onCancel}
+                  className="border-slate-600 text-white hover:bg-slate-700"
+                >
+                  Cancel
+                </Button>
+              )}
+            </div>
           </Form>
         )}
       </Formik>

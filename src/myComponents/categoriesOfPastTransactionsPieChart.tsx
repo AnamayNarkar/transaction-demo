@@ -10,6 +10,10 @@ interface CategoryData {
   value: number;
 }
 
+interface CategoriesChartProps {
+  onTransactionUpdate?: () => void;
+}
+
 // Color palette for the pie chart
 const COLORS = [
   '#3B82F6', // blue-500
@@ -24,43 +28,51 @@ const COLORS = [
   '#84CC16', // lime-500
 ];
 
-export default function CategoriesOfPastTransactionsPieChart() {
+export default function CategoriesOfPastTransactionsPieChart({ onTransactionUpdate }: CategoriesChartProps) {
   const [categoryData, setCategoryData] = useState<CategoryData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [totalTransactions, setTotalTransactions] = useState(0);
 
-  useEffect(() => {
-    const fetchCategorySummary = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch('/api/transactions/summary');
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch category summary');
-        }
-        
-        const data = await response.json();
-        
-        // Map category IDs to their labels
-        const formattedData = data.summary.map((item: CategoryData) => ({
-          name: getCategoryLabel(item.name),
-          value: item.value,
-          categoryId: item.name
-        }));
-        
-        setCategoryData(formattedData);
-        setTotalTransactions(data.totalTransactions || 0);
-      } catch (error) {
-        setError(error instanceof Error ? error.message : 'Failed to load category summary');
-        console.error('Error fetching category summary:', error);
-      } finally {
-        setLoading(false);
+  const fetchCategorySummary = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/transactions/summary');
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch category summary');
       }
-    };
-    
+      
+      const data = await response.json();
+      
+      // Map category IDs to their labels
+      const formattedData = data.summary.map((item: CategoryData) => ({
+        name: getCategoryLabel(item.name),
+        value: item.value,
+        categoryId: item.name
+      }));
+      
+      setCategoryData(formattedData);
+      setTotalTransactions(data.totalTransactions || 0);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Failed to load category summary');
+      console.error('Error fetching category summary:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Initial fetch
+  useEffect(() => {
     fetchCategorySummary();
   }, []);
+
+  // Refresh when transactions are updated
+  useEffect(() => {
+    if (onTransactionUpdate) {
+      fetchCategorySummary();
+    }
+  }, [onTransactionUpdate]);
 
   const getCategoryLabel = (categoryId: string) => {
     const category = categories.categories.find(c => c.id === categoryId);
@@ -70,7 +82,7 @@ export default function CategoriesOfPastTransactionsPieChart() {
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD'
+      currency: 'INR'
     }).format(value);
   };
 
@@ -119,7 +131,7 @@ export default function CategoriesOfPastTransactionsPieChart() {
   return (
     <Card className="p-6 bg-slate-700 text-white h-[400px]">
       <CardHeader className="px-0 pb-0">
-        <CardDescription>Spending by Category</CardDescription>
+        <CardDescription>Expense Categories</CardDescription>
       </CardHeader>
       <CardContent className="p-0 mt-4 h-[300px]">
         <ResponsiveContainer width="100%" height="100%">

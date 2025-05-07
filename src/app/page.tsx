@@ -1,14 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
+import { useState, useEffect, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowRightCircle, PlusCircle, DollarSign, BarChart4, Clock, TrendingDown, TrendingUp } from "lucide-react";
+import { PlusCircle, DollarSign, BarChart4, TrendingDown, TrendingUp } from "lucide-react";
 import PastTransactions from "@/myComponents/pastTranscations";
 import CategoriesOfPastTransactionsPieChart from "@/myComponents/categoriesOfPastTransactionsPieChart";
 import MonthlyExpensesBarChart from "@/myComponents/monthlyExpensesBarChart";
-// import { ChartContainer } from "@/components/ui/chart";
+import { TransactionModal } from "@/components/ui/transaction-modal";
+import TransactionForm from "@/forms/transactions/TransactionForm";
 
 // Define transaction interface
 interface Transaction {
@@ -17,6 +17,7 @@ interface Transaction {
   description: string;
   category: string;
   date: string;
+  transactionType: "income" | "expense";
 }
 
 interface TransactionSummary {
@@ -34,42 +35,50 @@ export default function HomePage() {
     netBalance: 0,
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  useEffect(() => {
-    const fetchSummary = async () => {
-      try {
-        setIsLoading(true);
-        const response = await fetch("/api/transactions");
-        const data = await response.json();
+  const fetchSummary = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch("/api/transactions");
+      const data = await response.json();
+      
+      if (data.transactions) {
+        const transactions: Transaction[] = data.transactions;
         
-        if (data.transactions) {
-          const transactions: Transaction[] = data.transactions;
+        // Calculate totals using absolute values
+        const totalSpent = transactions
+          .filter(t => t.transactionType === 'expense')
+          .reduce((sum, t) => sum + Math.abs(t.amount), 0);
           
-          // Calculate summary statistics
-          const totalSpent = transactions
-            .filter((t: Transaction) => t.amount < 0)
-            .reduce((sum: number, t: Transaction) => sum + Math.abs(t.amount), 0);
-            
-          const totalIncome = transactions
-            .filter((t: Transaction) => t.amount >= 0)
-            .reduce((sum: number, t: Transaction) => sum + t.amount, 0);
-            
-          setSummary({
-            totalTransactions: transactions.length,
-            totalSpent,
-            totalIncome,
-            netBalance: totalIncome - totalSpent,
-          });
-        }
-      } catch (error) {
-        console.error("Error fetching summary:", error);
-      } finally {
-        setIsLoading(false);
+        const totalIncome = transactions
+          .filter(t => t.transactionType === 'income')
+          .reduce((sum, t) => sum + t.amount, 0);
+          
+        setSummary({
+          totalTransactions: transactions.length,
+          totalSpent,
+          totalIncome,
+          netBalance: totalIncome - totalSpent,
+        });
       }
-    };
-    
+    } catch (error) {
+      console.error("Error fetching summary:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Initial fetch
+  useEffect(() => {
     fetchSummary();
   }, []);
+
+  // Refresh when refreshTrigger changes
+  useEffect(() => {
+    fetchSummary();
+  }, [refreshTrigger]);
 
   // Format currency
   const formatCurrency = (amount: number) => {
@@ -79,6 +88,15 @@ export default function HomePage() {
     }).format(amount);
   };
 
+  const handleAddSuccess = () => {
+    setIsAddModalOpen(false);
+    fetchSummary();
+  };
+
+  const handleTransactionUpdate = useCallback(() => {
+    setRefreshTrigger(prev => prev + 1);
+  }, []);
+
   return (
     <main className="min-h-screen bg-slate-800 text-white">
       <div className="container mx-auto py-8 px-4">
@@ -87,12 +105,13 @@ export default function HomePage() {
           <p className="text-gray-400 mb-6 max-w-2xl mx-auto">
             Track your finances, monitor spending patterns, and make informed financial decisions with our easy-to-use dashboard.
           </p>
-          <Link href="/new">
-            <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-              <PlusCircle className="mr-2 h-5 w-5" />
-              Add New Transaction
-            </Button>
-          </Link>
+          <Button 
+            className="bg-blue-600 hover:bg-blue-700 text-white"
+            onClick={() => setIsAddModalOpen(true)}
+          >
+            <PlusCircle className="mr-2 h-5 w-5" />
+            Add New Transaction
+          </Button>
         </header>
 
         {/* Summary Cards */}
@@ -150,21 +169,37 @@ export default function HomePage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           {/* Spending by Category */}
           <div>
-            <h2 className="text-xl font-bold mb-4">Spending Categories</h2>
-            <CategoriesOfPastTransactionsPieChart />
+            <h2 className="text-xl font-bold mb-4">Expense Categories</h2>
+            <CategoriesOfPastTransactionsPieChart onTransactionUpdate={handleTransactionUpdate} />
           </div>
           
           {/* Monthly Expenses Bar Chart */}
           <div>
             <h2 className="text-xl font-bold mb-4">Monthly Expenses</h2>
-            <MonthlyExpensesBarChart />
+            <MonthlyExpensesBarChart onTransactionUpdate={handleTransactionUpdate} />
           </div>
         </div>
         
         {/* Recent Transactions */}
         <div>
-          <PastTransactions />
+          <PastTransactions onTransactionUpdate={handleTransactionUpdate} />
         </div>
+
+        {/* Add Transaction Modal */}
+        <TransactionModal
+          isOpen={isAddModalOpen}
+          onClose={() => setIsAddModalOpen(false)}
+          title="Add New Transaction"
+        >
+          <TransactionForm
+            mode="create"
+            onSuccess={() => {
+              setIsAddModalOpen(false);
+              handleTransactionUpdate();
+            }}
+            onCancel={() => setIsAddModalOpen(false)}
+          />
+        </TransactionModal>
       </div>
     </main>
   );

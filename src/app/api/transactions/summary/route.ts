@@ -7,7 +7,7 @@ export async function GET(req: NextRequest) {
     await connectDB();
     
     // Get all transactions
-    const transactions = await TransactionModel.find({});
+    const transactions = await TransactionModel.find({ transactionType: 'expense' });
     
     // Count total transactions
     const totalTransactions = transactions.length;
@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
         acc[category] = 0;
       }
       
-      // Add the absolute amount to the category total
+      // Add the absolute amount since we know these are all expenses
       acc[category] += Math.abs(Number(amount));
       
       return acc;

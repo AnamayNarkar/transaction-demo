@@ -7,6 +7,7 @@ export interface ITransaction extends Document {
   category: string;
   date: string;
   transactionType: string; // 'income' or 'expense'
+  createdAt: Date;
 }
 
 const TransactionSchema: Schema<ITransaction> = new Schema({
@@ -16,6 +17,7 @@ const TransactionSchema: Schema<ITransaction> = new Schema({
   category: { type: String, required: true },
   date: { type: String, required: true },
   transactionType: { type: String, required: true, enum: ['income', 'expense'] },
+  createdAt: { type: Date, default: Date.now }
 });
 
 // Check if the model already exists to prevent "OverwriteModelError"
