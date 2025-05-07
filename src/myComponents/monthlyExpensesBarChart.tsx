@@ -38,7 +38,7 @@ const chartConfig = {
 } satisfies ChartConfig
 
 interface MonthlyExpensesChartProps {
-  onTransactionUpdate?: () => void;
+  onTransactionUpdate?: number | (() => void);
 }
 
 interface Transaction {
@@ -54,6 +54,7 @@ export default function MonthlyExpensesBarChart({ onTransactionUpdate }: Monthly
   const [chartData, setChartData] = useState(initialChartData)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [refreshCounter, setRefreshCounter] = useState(0)
   const currentYear = new Date().getFullYear()
 
   const processTransactionsByMonth = useCallback((transactions: Transaction[]) => {
@@ -86,8 +87,15 @@ export default function MonthlyExpensesBarChart({ onTransactionUpdate }: Monthly
 
   const fetchMonthlyData = useCallback(async () => {
     try {
+      console.log("🔄 Fetching monthly expenses data...")
       setLoading(true)
-      const response = await fetch('/api/transactions')
+      const response = await fetch('/api/transactions', {
+        // Add cache busting to prevent caching
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      })
       
       if (!response.ok) {
         throw new Error('Failed to fetch transactions')
@@ -97,6 +105,7 @@ export default function MonthlyExpensesBarChart({ onTransactionUpdate }: Monthly
       const transactions = data.transactions || []
       
       const monthlyData = processTransactionsByMonth(transactions)
+      console.log("📊 Updated monthly expenses data received")
       setChartData(monthlyData)
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Failed to load monthly data')
@@ -104,7 +113,7 @@ export default function MonthlyExpensesBarChart({ onTransactionUpdate }: Monthly
     } finally {
       setLoading(false)
     }
-  }, [processTransactionsByMonth])
+  }, [processTransactionsByMonth, refreshCounter]) // Add refreshCounter dependency
 
   // Initial fetch
   useEffect(() => {
@@ -114,9 +123,11 @@ export default function MonthlyExpensesBarChart({ onTransactionUpdate }: Monthly
   // Refresh when transactions are updated
   useEffect(() => {
     if (onTransactionUpdate) {
-      fetchMonthlyData();
+      console.log("🔄 Monthly Chart: Refresh triggered")
+      // Force a refresh by incrementing refresh counter
+      setRefreshCounter(prev => prev + 1)
     }
-  }, [onTransactionUpdate, fetchMonthlyData]);
+  }, [onTransactionUpdate])
 
   if (loading) {
     return (

@@ -14,20 +14,33 @@ interface BudgetComparisonItem {
   isOverBudget: boolean;
 }
 
-export default function BudgetVsActualChart() {
+interface BudgetVsActualChartProps {
+  onTransactionUpdate?: number | (() => void);
+}
+
+export default function BudgetVsActualChart({ onTransactionUpdate }: BudgetVsActualChartProps) {
   const [comparisonData, setComparisonData] = useState<BudgetComparisonItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [refreshCounter, setRefreshCounter] = useState(0);
 
   const fetchComparisonData = useCallback(async () => {
     try {
+      console.log("🔄 Fetching budget vs actual data...");
       setLoading(true);
       setError(null);
       
       const response = await fetch(
-        `/api/budgets/comparison?month=${selectedMonth}&year=${selectedYear}`
+        `/api/budgets/comparison?month=${selectedMonth}&year=${selectedYear}`,
+        {
+          // Add cache busting to prevent stale data
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          }
+        }
       );
       
       if (!response.ok) {
@@ -38,7 +51,7 @@ export default function BudgetVsActualChart() {
       
       // Sort by budget amount (descending)
       const sortedData = [...data.comparison].sort((a, b) => b.budgetAmount - a.budgetAmount);
-      
+      console.log("📊 Updated budget vs actual data received");
       setComparisonData(sortedData);
     } catch (error) {
       console.error("Error fetching budget comparison:", error);
@@ -50,11 +63,26 @@ export default function BudgetVsActualChart() {
     } finally {
       setLoading(false);
     }
-  }, [selectedMonth, selectedYear]);
+  }, [selectedMonth, selectedYear, refreshCounter]); // Add refreshCounter dependency
 
+  // Initial fetch
   useEffect(() => {
     fetchComparisonData();
   }, [fetchComparisonData]);
+
+  // Refresh when transactions are updated
+  useEffect(() => {
+    if (onTransactionUpdate) {
+      console.log("🔄 Budget vs Actual Chart: Refresh triggered");
+      // Force a refresh by incrementing refresh counter
+      setRefreshCounter(prev => prev + 1);
+    }
+  }, [onTransactionUpdate]);
+
+  // Update when month or year changes
+  useEffect(() => {
+    fetchComparisonData();
+  }, [selectedMonth, selectedYear, fetchComparisonData]);
 
   const getCategoryLabel = (categoryId: string) => {
     const category = categories.categories.find(c => c.id === categoryId);

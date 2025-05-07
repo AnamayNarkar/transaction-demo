@@ -11,7 +11,7 @@ interface CategoryData {
 }
 
 interface CategoriesChartProps {
-  onTransactionUpdate?: () => void;
+  onTransactionUpdate?: number | (() => void);
 }
 
 // Color palette for the pie chart
@@ -33,11 +33,19 @@ export default function CategoriesOfPastTransactionsPieChart({ onTransactionUpda
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [totalTransactions, setTotalTransactions] = useState(0);
+  const [refreshCounter, setRefreshCounter] = useState(0);
 
   const fetchCategorySummary = useCallback(async () => {
     try {
+      console.log("🔄 Fetching category summary data...");
       setLoading(true);
-      const response = await fetch('/api/transactions/summary');
+      const response = await fetch('/api/transactions/summary', {
+        // Add cache busting to prevent caching
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
       
       if (!response.ok) {
         throw new Error('Failed to fetch category summary');
@@ -46,12 +54,13 @@ export default function CategoriesOfPastTransactionsPieChart({ onTransactionUpda
       const data = await response.json();
       
       // Map category IDs to their labels
-      const formattedData = data.summary.map((item: CategoryData) => ({
+      const formattedData = data.summary?.map((item: CategoryData) => ({
         name: getCategoryLabel(item.name),
         value: item.value,
         categoryId: item.name
-      }));
+      })) || [];
       
+      console.log("📊 Updated category data received:", formattedData);
       setCategoryData(formattedData);
       setTotalTransactions(data.totalTransactions || 0);
     } catch (error) {
@@ -60,7 +69,7 @@ export default function CategoriesOfPastTransactionsPieChart({ onTransactionUpda
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [refreshCounter]); // Add refreshCounter to dependencies
 
   // Initial fetch
   useEffect(() => {
@@ -70,9 +79,11 @@ export default function CategoriesOfPastTransactionsPieChart({ onTransactionUpda
   // Refresh when transactions are updated
   useEffect(() => {
     if (onTransactionUpdate) {
-      fetchCategorySummary();
+      console.log("🔄 Pie Chart: Refresh triggered");
+      // Force a refresh by incrementing refresh counter
+      setRefreshCounter(prev => prev + 1);
     }
-  }, [onTransactionUpdate, fetchCategorySummary]);
+  }, [onTransactionUpdate]);
 
   const getCategoryLabel = (categoryId: string) => {
     const category = categories.categories.find(c => c.id === categoryId);

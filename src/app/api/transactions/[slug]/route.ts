@@ -64,7 +64,11 @@ export async function PUT(
       );
     }
     
-    return NextResponse.json({ success: true, transaction }, { status: 200 });
+    return NextResponse.json({ 
+      success: true, 
+      transaction,
+      refreshData: true // Flag to trigger refresh on client
+    }, { status: 200 });
   } catch (error) {
     console.error('Error updating transaction:', error);
     return NextResponse.json(
@@ -93,7 +97,11 @@ export async function DELETE(
     }
     
     return NextResponse.json(
-      { success: true, message: 'Transaction deleted successfully' },
+      { 
+        success: true, 
+        message: 'Transaction deleted successfully',
+        refreshData: true // Flag to trigger refresh on client
+      },
       { status: 200 }
     );
   } catch (error) {

@@ -84,7 +84,11 @@ export async function POST(req: NextRequest) {
     }
     
     return NextResponse.json(
-      { success: true, budget },
+      { 
+        success: true, 
+        budget, 
+        refreshData: true // Add flag to trigger refresh on client
+      },
       { status: existingBudget ? 200 : 201 }
     );
   } catch (error) {

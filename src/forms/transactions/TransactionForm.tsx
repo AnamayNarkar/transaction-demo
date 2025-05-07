@@ -99,8 +99,11 @@ export const TransactionForm = ({ initialData, onSuccess, onCancel, mode = 'crea
 
       setSubmitSuccess(true);
       
-      // Call onSuccess immediately after successful submission
-      onSuccess?.();
+      // Always call onSuccess after successful submission
+      // This will trigger the refresh of all components
+      if (onSuccess) {
+        onSuccess();
+      }
 
       if (mode === 'create') {
         resetForm();

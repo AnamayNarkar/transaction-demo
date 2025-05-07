@@ -41,7 +41,11 @@ export async function POST(req: NextRequest) {
     const newTransaction = await TransactionModel.create(data);
     
     return NextResponse.json(
-      { success: true, transaction: newTransaction },
+      { 
+        success: true, 
+        transaction: newTransaction,
+        refreshData: true // Flag to trigger refresh on client
+      },
       { status: 201 }
     );
   } catch (error) {

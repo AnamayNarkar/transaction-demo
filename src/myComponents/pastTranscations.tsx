@@ -17,7 +17,7 @@ interface Transaction {
 }
 
 interface PastTransactionsProps {
-  onTransactionUpdate?: () => void;
+  onTransactionUpdate?: number | (() => void);
 }
 
 export default function PastTransactions({ onTransactionUpdate }: PastTransactionsProps) {
@@ -26,11 +26,19 @@ export default function PastTransactions({ onTransactionUpdate }: PastTransactio
   const [error, setError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const [refreshCounter, setRefreshCounter] = useState(0);
 
   const fetchTransactions = useCallback(async () => {
     try {
+      console.log("🔄 Fetching recent transactions...");
       setLoading(true);
-      const response = await fetch("/api/transactions");
+      const response = await fetch("/api/transactions", {
+        // Add cache busting to prevent stale data
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
 
       if (!response.ok) {
         throw new Error("Failed to fetch transactions");
@@ -38,6 +46,7 @@ export default function PastTransactions({ onTransactionUpdate }: PastTransactio
 
       const data = await response.json();
       if (data.success && Array.isArray(data.transactions)) {
+        console.log(`📋 Retrieved ${data.transactions.length} transactions`);
         setTransactions(data.transactions);
       }
     } catch (error) {
@@ -48,36 +57,68 @@ export default function PastTransactions({ onTransactionUpdate }: PastTransactio
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [refreshCounter]); // Include refreshCounter in dependencies
 
   // Initial fetch
   useEffect(() => {
     fetchTransactions();
   }, [fetchTransactions]);
 
-  // Handle transaction updates
+  // Handle transaction updates - triggers when either a function is called or the number changes
   useEffect(() => {
-    console.log("updating previous transactions");
-    fetchTransactions();
-  }, [fetchTransactions, onTransactionUpdate]);
+    console.log("🔄 Recent Transactions: Refresh check triggered", typeof onTransactionUpdate);
+    
+    if (typeof onTransactionUpdate === 'number') {
+      console.log(`🔄 Recent Transactions: Refresh triggered by number change (${onTransactionUpdate})`);
+      setRefreshCounter(prev => prev + 1);
+    } else if (typeof onTransactionUpdate === 'function') {
+      console.log("🔄 Recent Transactions: Refresh triggered by function");
+      setRefreshCounter(prev => prev + 1);
+    }
+  }, [onTransactionUpdate]);
 
   const handleRefresh = useCallback(() => {
-    fetchTransactions();
-    onTransactionUpdate?.();
-  }, [fetchTransactions, onTransactionUpdate]);
+    console.log("🔄 Recent Transactions: Manual refresh triggered");
+    setRefreshCounter(prev => prev + 1);
+    
+    // Trigger refresh in parent components if it's a function
+    if (typeof onTransactionUpdate === 'function') {
+      onTransactionUpdate();
+    }
+  }, [onTransactionUpdate]);
 
   const handleDelete = async (id: string) => {
     try {
+      console.log(`🗑️ Deleting transaction: ${id}`);
       setIsDeleting(id);
+      
       const response = await fetch(`/api/transactions/${id}`, {
         method: "DELETE",
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
       });
 
       if (!response.ok) {
         throw new Error("Failed to delete transaction");
       }
 
-      handleRefresh();
+      const data = await response.json();
+      console.log("🔄 Delete operation completed, refreshing data", data);
+      
+      // Update the local transactions state immediately for a faster UI response
+      setTransactions(prev => prev.filter(t => t.id !== id));
+      
+      // Force a global refresh instead of just local refresh
+      if (typeof onTransactionUpdate === 'number') {
+        // If onTransactionUpdate is a number (refreshTrigger from parent), 
+        // we need to manually trigger the parent's refresh function
+        window.dispatchEvent(new CustomEvent('transaction-deleted'));
+      } else if (typeof onTransactionUpdate === 'function') {
+        // If it's a function, call it directly
+        onTransactionUpdate();
+      }
     } catch (error) {
       setError(
         error instanceof Error ? error.message : "Failed to delete transaction"
@@ -94,7 +135,17 @@ export default function PastTransactions({ onTransactionUpdate }: PastTransactio
 
   const handleEditSuccess = () => {
     setEditingTransaction(null);
-    handleRefresh();
+    console.log("✏️ Edit operation completed, refreshing data");
+    
+    // Force a global refresh for edits similar to how we handle deletions
+    if (typeof onTransactionUpdate === 'number') {
+      // If onTransactionUpdate is a number (refreshTrigger from parent), 
+      // we need to manually trigger the parent's refresh function
+      window.dispatchEvent(new CustomEvent('transaction-updated'));
+    } else if (typeof onTransactionUpdate === 'function') {
+      // If it's a function, call it directly
+      onTransactionUpdate();
+    }
   };
 
   const getCategoryLabel = (categoryId: string) => {

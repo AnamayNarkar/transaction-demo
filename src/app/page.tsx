@@ -39,9 +39,17 @@ export default function HomePage() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  const fetchSummary = async () => {
+  const fetchSummary = useCallback(async () => {
     try {
-      const response = await fetch("/api/transactions");
+      console.log("🔄 Fetching transaction summary data...");
+      const response = await fetch("/api/transactions", {
+        // Add cache busting to prevent stale data
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
+      
       const data = await response.json();
       
       if (data.transactions) {
@@ -49,11 +57,11 @@ export default function HomePage() {
         
         // Calculate totals using absolute values
         const totalSpent = transactions
-          .filter(t => t.transactionType === 'expense')
+          .filter(t => t.amount < 0)
           .reduce((sum, t) => sum + Math.abs(t.amount), 0);
           
         const totalIncome = transactions
-          .filter(t => t.transactionType === 'income')
+          .filter(t => t.amount > 0)
           .reduce((sum, t) => sum + t.amount, 0);
           
         setSummary({
@@ -62,21 +70,44 @@ export default function HomePage() {
           totalIncome,
           netBalance: totalIncome - totalSpent,
         });
+        
+        console.log("💰 Dashboard summary updated:", {
+          transactions: transactions.length,
+          expenses: totalSpent,
+          income: totalIncome
+        });
       }
     } catch (error) {
       console.error("Error fetching summary:", error);
     }
-  };
+  }, []);
 
   // Initial fetch
   useEffect(() => {
     fetchSummary();
-  }, []);
+  }, [fetchSummary]);
 
   // Refresh when refreshTrigger changes
   useEffect(() => {
+    console.log(`🔄 Dashboard refresh triggered (${refreshTrigger})`);
     fetchSummary();
-  }, [refreshTrigger]);
+  }, [refreshTrigger, fetchSummary]);
+
+  // Listen for the transaction events (deletion and update)
+  useEffect(() => {
+    const handleTransactionEvent = () => {
+      console.log("🔄 Transaction update/deletion detected via event, triggering global refresh");
+      setRefreshTrigger(prev => prev + 1);
+    };
+    
+    window.addEventListener('transaction-deleted', handleTransactionEvent);
+    window.addEventListener('transaction-updated', handleTransactionEvent);
+    
+    return () => {
+      window.removeEventListener('transaction-deleted', handleTransactionEvent);
+      window.removeEventListener('transaction-updated', handleTransactionEvent);
+    };
+  }, []);
 
   // Format currency
   const formatCurrency = (amount: number) => {
@@ -86,7 +117,10 @@ export default function HomePage() {
     }).format(amount);
   };
 
+  // Refresh all components when a transaction is added, edited, or deleted
   const handleTransactionUpdate = useCallback(() => {
+    // Increment the refresh trigger to force all components to update
+    console.log("🔄 Transaction change detected, triggering global refresh");
     setRefreshTrigger(prev => prev + 1);
   }, []);
 
@@ -161,7 +195,7 @@ export default function HomePage() {
         {/* Budget vs Actual and Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
           {/* Budget vs Actual Chart */}
-          <BudgetVsActualChart />
+          <BudgetVsActualChart onTransactionUpdate={refreshTrigger} />
           
           {/* Monthly Category Budgets */}
           <CategoryBudgetForm onBudgetChange={handleTransactionUpdate} />
@@ -172,19 +206,19 @@ export default function HomePage() {
           {/* Spending by Category */}
           <div>
             <h2 className="text-xl font-bold mb-4">Expense Categories</h2>
-            <CategoriesOfPastTransactionsPieChart onTransactionUpdate={handleTransactionUpdate} />
+            <CategoriesOfPastTransactionsPieChart onTransactionUpdate={refreshTrigger} />
           </div>
           
           {/* Monthly Expenses Bar Chart */}
           <div>
             <h2 className="text-xl font-bold mb-4">Monthly Expenses</h2>
-            <MonthlyExpensesBarChart onTransactionUpdate={handleTransactionUpdate} />
+            <MonthlyExpensesBarChart onTransactionUpdate={refreshTrigger} />
           </div>
         </div>
         
         {/* Recent Transactions */}
         <div>
-          <PastTransactions onTransactionUpdate={handleTransactionUpdate} />
+          <PastTransactions onTransactionUpdate={refreshTrigger} />
         </div>
 
         {/* Add Transaction Modal */}
@@ -196,7 +230,7 @@ export default function HomePage() {
             mode="create"
             onSuccess={() => {
               setIsAddModalOpen(false);
-              handleTransactionUpdate();
+              handleTransactionUpdate(); 
             }}
             onCancel={() => setIsAddModalOpen(false)}
           />
