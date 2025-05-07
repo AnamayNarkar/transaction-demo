@@ -1,14 +1,12 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { TrendingUp } from "lucide-react"
+import { useState, useEffect, useCallback } from "react"
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, XAxis } from "recharts"
 
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
@@ -43,50 +41,22 @@ interface MonthlyExpensesChartProps {
   onTransactionUpdate?: () => void;
 }
 
+interface Transaction {
+    id: string;
+    amount: number;
+    date: string;
+    transactionType: string;
+    description: string;
+    category: string;
+  }
+
 export default function MonthlyExpensesBarChart({ onTransactionUpdate }: MonthlyExpensesChartProps) {
   const [chartData, setChartData] = useState(initialChartData)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [comparisonPercent, setComparisonPercent] = useState(0)
-  const [isIncreasing, setIsIncreasing] = useState(true)
   const currentYear = new Date().getFullYear()
 
-  const fetchMonthlyData = async () => {
-    try {
-      setLoading(true)
-      const response = await fetch('/api/transactions')
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch transactions')
-      }
-      
-      const data = await response.json()
-      const transactions = data.transactions || []
-      
-      const monthlyData = processTransactionsByMonth(transactions)
-      setChartData(monthlyData)
-      calculateMonthlyComparison(monthlyData)
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'Failed to load monthly data')
-      console.error('Error fetching monthly expense data:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // Initial fetch
-  useEffect(() => {
-    fetchMonthlyData()
-  }, [])
-
-  // Refresh when transactions are updated
-  useEffect(() => {
-    if (onTransactionUpdate) {
-      fetchMonthlyData();
-    }
-  }, [onTransactionUpdate]);
-
-  const processTransactionsByMonth = (transactions: any[]) => {
+  const processTransactionsByMonth = useCallback((transactions: Transaction[]) => {
     const months = [
       "January", "February", "March", "April", "May", "June",
       "July", "August", "September", "October", "November", "December"
@@ -112,23 +82,41 @@ export default function MonthlyExpensesBarChart({ onTransactionUpdate }: Monthly
     })
     
     return monthlyData.slice(0, 6)
-  }
+  }, [currentYear])
 
-  const calculateMonthlyComparison = (data: typeof chartData) => {
-    const lastTwoMonths = data
-      .filter(month => month.expenses > 0)
-      .slice(-2)
-    
-    if (lastTwoMonths.length >= 2) {
-      const previousMonth = lastTwoMonths[0].expenses
-      const currentMonth = lastTwoMonths[1].expenses
+  const fetchMonthlyData = useCallback(async () => {
+    try {
+      setLoading(true)
+      const response = await fetch('/api/transactions')
       
-      const percentChange = ((currentMonth - previousMonth) / previousMonth) * 100
+      if (!response.ok) {
+        throw new Error('Failed to fetch transactions')
+      }
       
-      setComparisonPercent(Math.abs(percentChange))
-      setIsIncreasing(percentChange > 0)
+      const data = await response.json()
+      const transactions = data.transactions || []
+      
+      const monthlyData = processTransactionsByMonth(transactions)
+      setChartData(monthlyData)
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Failed to load monthly data')
+      console.error('Error fetching monthly expense data:', error)
+    } finally {
+      setLoading(false)
     }
-  }
+  }, [processTransactionsByMonth])
+
+  // Initial fetch
+  useEffect(() => {
+    fetchMonthlyData()
+  }, [fetchMonthlyData])
+
+  // Refresh when transactions are updated
+  useEffect(() => {
+    if (onTransactionUpdate) {
+      fetchMonthlyData();
+    }
+  }, [onTransactionUpdate, fetchMonthlyData]);
 
   if (loading) {
     return (

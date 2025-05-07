@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import categories from "@/forms/transactions/schema/categories.json";
@@ -14,22 +14,14 @@ interface BudgetComparisonItem {
   isOverBudget: boolean;
 }
 
-interface BudgetVsActualChartProps {
-  onBudgetUpdate?: () => void;
-}
-
-export default function BudgetVsActualChart({ onBudgetUpdate }: BudgetVsActualChartProps) {
+export default function BudgetVsActualChart() {
   const [comparisonData, setComparisonData] = useState<BudgetComparisonItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
-  useEffect(() => {
-    fetchComparisonData();
-  }, [selectedMonth, selectedYear]);
-
-  const fetchComparisonData = async () => {
+  const fetchComparisonData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -58,7 +50,11 @@ export default function BudgetVsActualChart({ onBudgetUpdate }: BudgetVsActualCh
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedMonth, selectedYear]);
+
+  useEffect(() => {
+    fetchComparisonData();
+  }, [fetchComparisonData]);
 
   const getCategoryLabel = (categoryId: string) => {
     const category = categories.categories.find(c => c.id === categoryId);
@@ -109,7 +105,15 @@ export default function BudgetVsActualChart({ onBudgetUpdate }: BudgetVsActualCh
   };
 
   // Custom tooltip for the chart
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  interface TooltipProps {
+    active?: boolean;
+    payload?: Array<{
+      value: number;
+    }>;
+    label?: string;
+  }
+
+  const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
     if (active && payload && payload.length) {
       const budgetAmount = payload[0]?.value || 0;
       const actualAmount = payload[1]?.value || 0;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import categories from "@/forms/transactions/schema/categories.json";
@@ -26,11 +26,7 @@ export default function CategoryBudgetForm({ onBudgetChange }: CategoryBudgetFor
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
-  useEffect(() => {
-    fetchBudgets();
-  }, [selectedMonth, selectedYear]);
-
-  const fetchBudgets = async () => {
+  const fetchBudgets = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -55,7 +51,11 @@ export default function CategoryBudgetForm({ onBudgetChange }: CategoryBudgetFor
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedMonth, selectedYear]);
+
+  useEffect(() => {
+    fetchBudgets();
+  }, [fetchBudgets]);
 
   const handleInputChange = (categoryId: string, value: string) => {
     const amount = value === "" ? 0 : parseFloat(value);

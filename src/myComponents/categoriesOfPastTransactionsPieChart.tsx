@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardHeader, CardDescription, CardContent } from '@/components/ui/card';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import categories from '@/forms/transactions/schema/categories.json';
@@ -34,7 +34,7 @@ export default function CategoriesOfPastTransactionsPieChart({ onTransactionUpda
   const [error, setError] = useState<string | null>(null);
   const [totalTransactions, setTotalTransactions] = useState(0);
 
-  const fetchCategorySummary = async () => {
+  const fetchCategorySummary = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch('/api/transactions/summary');
@@ -60,19 +60,19 @@ export default function CategoriesOfPastTransactionsPieChart({ onTransactionUpda
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   // Initial fetch
   useEffect(() => {
     fetchCategorySummary();
-  }, []);
+  }, [fetchCategorySummary]);
 
   // Refresh when transactions are updated
   useEffect(() => {
     if (onTransactionUpdate) {
       fetchCategorySummary();
     }
-  }, [onTransactionUpdate]);
+  }, [onTransactionUpdate, fetchCategorySummary]);
 
   const getCategoryLabel = (categoryId: string) => {
     const category = categories.categories.find(c => c.id === categoryId);
@@ -86,7 +86,16 @@ export default function CategoriesOfPastTransactionsPieChart({ onTransactionUpda
     }).format(value);
   };
 
-  const CustomTooltip = ({ active, payload }: any) => {
+  // Define tooltip props interface
+  interface PieTooltipProps {
+    active?: boolean;
+    payload?: Array<{
+      name: string;
+      value: number;
+    }>;
+  }
+
+  const CustomTooltip = ({ active, payload }: PieTooltipProps) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-slate-900 p-2 border border-slate-700 rounded-md shadow-lg text-white">

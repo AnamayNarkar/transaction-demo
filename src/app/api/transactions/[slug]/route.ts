@@ -2,23 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/connectDB';
 import { TransactionModel } from '@/models/transaction.model';
 
-type Props = {
-  params: {
-    id: string;
-  };
-};
-
 export async function GET(
   request: NextRequest,
-  context: Props
+  { params }: { params: Promise<{ slug: string }> }
 ) {
-  // Clone the params to avoid reference issues
-  const params = { ...context.params };
-  
   try {
     await connectDB();
     
-    const transaction = await TransactionModel.findOne({ id: params.id });
+    const id = (await params).slug;
+
+    const transaction = await TransactionModel.findOne({ id: id });
     
     if (!transaction) {
       return NextResponse.json(
@@ -39,14 +32,13 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  context: Props
+  { params }: { params: Promise<{ slug: string }> }
 ) {
-  // Clone the params to avoid reference issues
-  const params = { ...context.params };
-  
   try {
     await connectDB();
     const data = await request.json();
+
+    const id = (await params).slug;
     
     // Set amount based on transaction type and ensure it's a number
     const amount = data.transactionType === 'expense' 
@@ -60,7 +52,7 @@ export async function PUT(
     };
     
     const transaction = await TransactionModel.findOneAndUpdate(
-      { id: params.id },
+      { id: id },
       update,
       { new: true }
     );
@@ -84,15 +76,14 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  context: Props
+  { params }: { params: Promise<{ slug: string }> }
 ) {
-  // Clone the params to avoid reference issues
-  const params = { ...context.params };
-  
   try {
     await connectDB();
+
+    const id = (await params).slug;
     
-    const transaction = await TransactionModel.findOneAndDelete({ id: params.id });
+    const transaction = await TransactionModel.findOneAndDelete({ id: id });
     
     if (!transaction) {
       return NextResponse.json(

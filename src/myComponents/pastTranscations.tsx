@@ -26,7 +26,6 @@ export default function PastTransactions({ onTransactionUpdate }: PastTransactio
   const [error, setError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
-  const [lastUpdate, setLastUpdate] = useState(0);
 
   const fetchTransactions = useCallback(async () => {
     try {
@@ -63,7 +62,6 @@ export default function PastTransactions({ onTransactionUpdate }: PastTransactio
   }, [fetchTransactions, onTransactionUpdate]);
 
   const handleRefresh = useCallback(() => {
-    setLastUpdate(Date.now());
     fetchTransactions();
     onTransactionUpdate?.();
   }, [fetchTransactions, onTransactionUpdate]);
@@ -203,7 +201,6 @@ export default function PastTransactions({ onTransactionUpdate }: PastTransactio
       <TransactionModal
         isOpen={!!editingTransaction}
         onClose={() => setEditingTransaction(null)}
-        title="Edit Transaction"
       >
         {editingTransaction && (
           <TransactionForm

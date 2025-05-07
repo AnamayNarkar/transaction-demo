@@ -6,10 +6,9 @@ interface TransactionModalProps {
   isOpen: boolean;
   onClose: () => void;
   children: ReactNode;
-  title: string;
 }
 
-export function TransactionModal({ isOpen, onClose, children, title }: TransactionModalProps) {
+export function TransactionModal({ isOpen, onClose, children }: TransactionModalProps) {
   if (!isOpen) return null;
 
   return (

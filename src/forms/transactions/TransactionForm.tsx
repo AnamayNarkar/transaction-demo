@@ -1,12 +1,10 @@
 "use client";
 
 import { Formik, Form, Field, ErrorMessage } from 'formik';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import * as Yup from 'yup';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { useRouter } from 'next/navigation';
-import transactionSchema from './schema/validationSchema';
 import categories from './schema/categories.json';
 
 const validationSchema = Yup.object({
@@ -64,7 +62,7 @@ export const TransactionForm = ({ initialData, onSuccess, onCancel, mode = 'crea
 
   const handleSubmit = async (
     values: TransactionFormValues, 
-    { resetForm }: any
+    { resetForm }: { resetForm: () => void }
   ) => {
     setIsSubmitting(true);
     setSubmitError(null);
@@ -139,7 +137,7 @@ export const TransactionForm = ({ initialData, onSuccess, onCancel, mode = 'crea
         onSubmit={handleSubmit}
         enableReinitialize
       >
-        {({ isValid, touched, errors }) => (
+        {({ isValid, touched }) => (
           <Form className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-200 mb-2">

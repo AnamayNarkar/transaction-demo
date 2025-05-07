@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/connectDB';
 import { TransactionModel } from '@/models/transaction.model';
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
     await connectDB();
     

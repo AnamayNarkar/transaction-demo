@@ -36,13 +36,11 @@ export default function HomePage() {
     totalIncome: 0,
     netBalance: 0,
   });
-  const [isLoading, setIsLoading] = useState(true);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const fetchSummary = async () => {
     try {
-      setIsLoading(true);
       const response = await fetch("/api/transactions");
       const data = await response.json();
       
@@ -67,8 +65,6 @@ export default function HomePage() {
       }
     } catch (error) {
       console.error("Error fetching summary:", error);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -88,11 +84,6 @@ export default function HomePage() {
       style: "currency",
       currency: "INR",
     }).format(amount);
-  };
-
-  const handleAddSuccess = () => {
-    setIsAddModalOpen(false);
-    fetchSummary();
   };
 
   const handleTransactionUpdate = useCallback(() => {
@@ -170,7 +161,7 @@ export default function HomePage() {
         {/* Budget vs Actual and Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
           {/* Budget vs Actual Chart */}
-          <BudgetVsActualChart onBudgetUpdate={handleTransactionUpdate} />
+          <BudgetVsActualChart />
           
           {/* Monthly Category Budgets */}
           <CategoryBudgetForm onBudgetChange={handleTransactionUpdate} />
@@ -200,7 +191,6 @@ export default function HomePage() {
         <TransactionModal
           isOpen={isAddModalOpen}
           onClose={() => setIsAddModalOpen(false)}
-          title="Add New Transaction"
         >
           <TransactionForm
             mode="create"
