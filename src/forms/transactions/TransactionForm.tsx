@@ -239,16 +239,16 @@ export const TransactionForm = ({ initialData, onSuccess, onCancel, mode = 'crea
                 {isSubmitting ? 'Saving...' : mode === 'edit' ? 'Update Transaction' : 'Add Transaction'}
               </Button>
               
-              {mode === 'edit' && onCancel && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={onCancel}
-                  className="border-slate-600 text-white hover:bg-slate-700"
-                >
-                  Cancel
-                </Button>
-              )}
+              {/* {mode === 'edit' && onCancel && (
+                // <Button
+                //   type="button"
+                //   variant="outline"
+                //   onClick={onCancel}
+                //   className="border-slate-600 text-white hover:bg-slate-700"
+                // >
+                //   Cancel
+                // </Button>
+              )} */}
             </div>
           </Form>
         )}
