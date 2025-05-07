@@ -64,6 +64,7 @@ export default function CategoryBudgetForm({ onBudgetChange }: CategoryBudgetFor
     }
   };
 
+  // Emit a custom budget update event when budgets are saved successfully
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -86,6 +87,13 @@ export default function CategoryBudgetForm({ onBudgetChange }: CategoryBudgetFor
       
       await Promise.all(saveBudgetPromises.filter(Boolean));
       setSuccess(true);
+      
+      // Dispatch a custom event for budget updates
+      window.dispatchEvent(new CustomEvent('budget-updated', {
+        detail: { month: selectedMonth, year: selectedYear }
+      }));
+      
+      // Call the callback function if provided
       if (onBudgetChange) onBudgetChange();
     } catch (error) {
       console.error("Error saving budgets:", error);
@@ -103,6 +111,24 @@ export default function CategoryBudgetForm({ onBudgetChange }: CategoryBudgetFor
   const getMonthName = (month: number) => {
     return new Date(2000, month - 1, 1).toLocaleString("default", { month: "long" });
   };
+
+  // Auto-hide success message after 3 seconds
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+    
+    if (success) {
+      timeoutId = setTimeout(() => {
+        setSuccess(false);
+      }, 3000); // 3 seconds
+    }
+    
+    // Clean up the timeout when component unmounts or success state changes
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [success]);
 
   return (
     <Card className="p-6 bg-slate-700 text-white h-[650px] flex flex-col">

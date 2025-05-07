@@ -84,6 +84,29 @@ export default function BudgetVsActualChart({ onTransactionUpdate }: BudgetVsAct
     fetchComparisonData();
   }, [selectedMonth, selectedYear, fetchComparisonData]);
 
+  // Listen for specific budget update events
+  useEffect(() => {
+    const handleBudgetUpdate = (event: CustomEvent) => {
+      console.log("🔄 Budget vs Actual Chart: Budget update detected via event", event.detail);
+      
+      // If the updated budget is for the month/year we're viewing, refresh immediately
+      if (event.detail && 
+          event.detail.month === selectedMonth && 
+          event.detail.year === selectedYear) {
+        console.log("🔄 Budget vs Actual Chart: Refreshing for current month/year");
+        setRefreshCounter(prev => prev + 1);
+      }
+    };
+    
+    // Add the event listener with type assertion
+    window.addEventListener('budget-updated', handleBudgetUpdate as EventListener);
+    
+    return () => {
+      // Remove the event listener with type assertion
+      window.removeEventListener('budget-updated', handleBudgetUpdate as EventListener);
+    };
+  }, [selectedMonth, selectedYear]);
+
   const getCategoryLabel = (categoryId: string) => {
     const category = categories.categories.find(c => c.id === categoryId);
     return category ? category.label : categoryId;
